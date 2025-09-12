@@ -1,6 +1,3 @@
-#!/usr/bin/env python3
-
-import asyncio
 from binance.um_futures import UMFutures
 import pandas as pd
 from datetime import datetime
@@ -71,14 +68,6 @@ def get_top_100_um_futures():
         # Return the list of base assets for further use
         top_100_symbols = [coin['baseAsset'] for coin in top_100]
         
-        print(f"\nTop 100 UM Futures Base Assets:")
-        print(top_100_symbols)
-        
-        # Save to file
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        filename = f'top_100_um_futures_{timestamp}.csv'
-        print(f"\nData saved to: {filename}")
-        
         return top_100_symbols
         
     except Exception as e:
@@ -116,12 +105,3 @@ if __name__ == "__main__":
     # Get top 100 UM futures coins
     top_100 = get_top_100_um_futures()
     
-    # Optionally get exchange info
-    # exchange_info = get_exchange_info()
-    
-    if top_100:
-        print(f"\n✅ Successfully retrieved top 100 UM futures coins")
-        print(f"📊 Data includes price, 24hr change, and volume information")
-        print(f"💾 Results saved to CSV file with timestamp")
-    else:
-        print("❌ Failed to retrieve data")

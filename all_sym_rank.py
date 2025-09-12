@@ -1,91 +1,127 @@
-import pandas as pd
-import numpy as np
+#!/usr/bin/env python3
+
+import asyncio
 from binance.um_futures import UMFutures
-import time
-from typing import List, Dict, Optional
+import pandas as pd
+from datetime import datetime
 
-client = UMFutures()
-
-def save_symbols_to_file(symbols: List[str], filename: str = "binance_symbols.txt"):
-    """Save symbols in TradingView format to a text file"""
+def get_top_100_um_futures():
+    """
+    Fetch top 100 UM futures trading pairs from Binance
+    Sorted by 24hr volume in descending order
+    """
+    
+    # Initialize UM Futures client (no API key needed for public data)
+    client = UMFutures()
+    
     try:
-        # Convert symbols to TradingView format (BINANCE:SYMBOL.P)
-        tradingview_symbols = [f"BINANCE:{symbol}.P" for symbol in symbols]
+        # Get 24hr ticker statistics for all symbols
+        print("Fetching 24hr ticker statistics...")
+        ticker_stats = client.ticker_24hr_price_change()
         
-        # Join all symbols with commas
-        symbols_string = ",".join(tradingview_symbols)
-        
-        # Write to file
-        with open(filename, 'w') as file:
-            file.write(symbols_string)
-        
-        print(f"Successfully saved {len(symbols)} symbols to {filename}")
-        print(f"First few symbols: {','.join(tradingview_symbols[:5])}...")
-        
-    except Exception as e:
-        print(f"Error saving symbols to file: {e}")
-
-def get_symbol_rankings() -> Dict[str, float]:
-    """Get 24hr ticker statistics for ranking symbols by volume"""
-    try:
-        ticker_24hr = client.ticker_24hr_price_change()
-        rankings = {}
-        
-        for ticker in ticker_24hr:
+        # Filter for USDT perpetual futures (UM futures)
+        usdt_futures = []
+        for ticker in ticker_stats:
             symbol = ticker['symbol']
-            # Use quote volume (USDT volume) for ranking
-            quote_volume = float(ticker['quoteVolume'])
-            rankings[symbol] = quote_volume
-            
-        return rankings
+            # Filter for USDT perpetual futures (exclude quarterly futures)
+            if symbol.endswith('USDT') and not any(month in symbol for month in ['0325', '0626', '0927', '1228']):
+                usdt_futures.append({
+                    'symbol': symbol,
+                    'baseAsset': symbol.replace('USDT', ''),
+                    'lastPrice': float(ticker['lastPrice']),
+                    'priceChange': float(ticker['priceChange']),
+                    'priceChangePercent': float(ticker['priceChangePercent']),
+                    'volume': float(ticker['volume']),
+                    'quoteVolume': float(ticker['quoteVolume']),
+                    'count': int(ticker['count']),
+                    'openPrice': float(ticker['openPrice']),
+                    'highPrice': float(ticker['highPrice']),
+                    'lowPrice': float(ticker['lowPrice'])
+                })
+        
+        # Sort by 24hr quote volume (USDT volume) in descending order
+        usdt_futures_sorted = sorted(usdt_futures, key=lambda x: x['quoteVolume'], reverse=True)
+        
+        # Get top 100
+        top_100 = usdt_futures_sorted[:100]
+        
+        # Create DataFrame for better display
+        df = pd.DataFrame(top_100)
+        
+        # Format numbers for better readability
+        df['lastPrice'] = df['lastPrice'].apply(lambda x: f"{x:.6f}".rstrip('0').rstrip('.'))
+        df['priceChangePercent'] = df['priceChangePercent'].apply(lambda x: f"{x:.2f}%")
+        df['quoteVolume'] = df['quoteVolume'].apply(lambda x: f"{x:,.0f}")
+        df['volume'] = df['volume'].apply(lambda x: f"{x:,.0f}")
+        
+        print(f"\n{'='*80}")
+        print(f"TOP 100 UM FUTURES COINS BY 24HR VOLUME")
+        print(f"Updated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S UTC')}")
+        print(f"{'='*80}")
+        
+        # Display results
+        for i, coin in enumerate(top_100, 1):
+            print(f"{i:2d}. {coin['baseAsset']:<12} | "
+                  f"Price: ${coin['lastPrice']:<12} | "
+                  f"Change: {df.iloc[i-1]['priceChangePercent']:>8} | "
+                  f"Volume: ${df.iloc[i-1]['quoteVolume']:>15}")
+        
+        print(f"\n{'='*80}")
+        
+        # Return the list of base assets for further use
+        top_100_symbols = [coin['baseAsset'] for coin in top_100]
+        
+        print(f"\nTop 100 UM Futures Base Assets:")
+        print(top_100_symbols)
+        
+        # Save to file
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        filename = f'top_100_um_futures_{timestamp}.csv'
+        print(f"\nData saved to: {filename}")
+        
+        return top_100_symbols
+        
     except Exception as e:
-        print(f"Error getting ticker data: {e}")
-        return {}
+        print(f"Error fetching data: {str(e)}")
+        return None
 
-def get_active_symbols_ranked() -> List[str]:
-    """Get all active USDT perpetual futures symbols sorted by ranking and save to file"""
+def get_exchange_info():
+    """
+    Get additional exchange information for UM futures
+    """
+    client = UMFutures()
+    
     try:
-        # Get exchange info
         exchange_info = client.exchange_info()
         active_symbols = []
         
         for symbol_info in exchange_info['symbols']:
-            # Filter for USDT perpetual futures that are trading
-            if (symbol_info['symbol'].endswith('USDT') and 
-                symbol_info['contractType'] == 'PERPETUAL' and
-                symbol_info['status'] == 'TRADING'):
-                active_symbols.append(symbol_info['symbol'])
+            if symbol_info['status'] == 'TRADING' and symbol_info['symbol'].endswith('USDT'):
+                active_symbols.append({
+                    'symbol': symbol_info['symbol'],
+                    'baseAsset': symbol_info['baseAsset'],
+                    'quoteAsset': symbol_info['quoteAsset'],
+                    'contractType': symbol_info['contractType'],
+                    'status': symbol_info['status']
+                })
         
-        print(f"Found {len(active_symbols)} active USDT perpetual futures")
-        
-        # Get ranking data (24hr volume)
-        print("Fetching ranking data...")
-        rankings = get_symbol_rankings()
-        
-        # Sort symbols by volume (descending order - highest volume first)
-        ranked_symbols = sorted(active_symbols, 
-                               key=lambda x: rankings.get(x, 0), 
-                               reverse=True)
-        
-        # Print top 10 symbols with their volumes
-        print("\nTop 10 symbols by 24hr volume:")
-        for i, symbol in enumerate(ranked_symbols[:10], 1):
-            volume = rankings.get(symbol, 0)
-            print(f"{i:2d}. {symbol:15s} - ${volume:,.0f} USDT")
-        
-        # Save to file
-        save_symbols_to_file(ranked_symbols)
-        
-        return ranked_symbols
+        print(f"\nTotal active UM futures symbols: {len(active_symbols)}")
+        return active_symbols
         
     except Exception as e:
-        print(f"Error getting ranked symbols: {e}")
-        return []
+        print(f"Error fetching exchange info: {str(e)}")
+        return None
 
-def get_active_symbols() -> List[str]:
-    """Legacy function - now calls the ranked version"""
-    return get_active_symbols_ranked()
-
-# Run the function
 if __name__ == "__main__":
-    ranked_symbols = get_active_symbols_ranked()
+    # Get top 100 UM futures coins
+    top_100 = get_top_100_um_futures()
+    
+    # Optionally get exchange info
+    # exchange_info = get_exchange_info()
+    
+    if top_100:
+        print(f"\n✅ Successfully retrieved top 100 UM futures coins")
+        print(f"📊 Data includes price, 24hr change, and volume information")
+        print(f"💾 Results saved to CSV file with timestamp")
+    else:
+        print("❌ Failed to retrieve data")

@@ -65,6 +65,9 @@ def get_top_100_um_futures():
         
         print(f"\n{'='*80}")
         
+        # Save to file in the required format
+        save_to_file(top_100)
+        
         # Return the list of base assets for further use
         top_100_symbols = [coin['baseAsset'] for coin in top_100]
         
@@ -73,6 +76,35 @@ def get_top_100_um_futures():
     except Exception as e:
         print(f"Error fetching data: {str(e)}")
         return None
+
+def save_to_file(top_100_data):
+    """
+    Save the top 100 symbols to a text file in the format: BINANCE:SYMBOLUSDT.P
+    """
+    try:
+        # Create the formatted symbol list
+        formatted_symbols = []
+        for coin in top_100_data:
+            symbol = coin['symbol']  # This is already in format like 'ETHUSDT'
+            formatted_symbol = f"BINANCE:{symbol}.P"
+            formatted_symbols.append(formatted_symbol)
+        
+        # Join all symbols with commas
+        symbols_string = ','.join(formatted_symbols)
+        
+        # Generate filename with timestamp
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        filename = f"binance_symbols_{timestamp}.txt"
+        
+        # Write to file
+        with open(filename, 'w') as file:
+            file.write(symbols_string)
+        
+        print(f"\nSymbols saved to file: {filename}")
+        print(f"Total symbols saved: {len(formatted_symbols)}")
+        
+    except Exception as e:
+        print(f"Error saving to file: {str(e)}")
 
 def get_exchange_info():
     """
@@ -104,4 +136,3 @@ def get_exchange_info():
 if __name__ == "__main__":
     # Get top 100 UM futures coins
     top_100 = get_top_100_um_futures()
-    

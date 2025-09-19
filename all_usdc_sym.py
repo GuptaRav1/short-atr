@@ -1,8 +1,5 @@
-import pandas as pd
-import numpy as np
 from binance.um_futures import UMFutures
-import time
-from typing import List, Dict, Optional
+from typing import List, Dict
 
 client = UMFutures()
 

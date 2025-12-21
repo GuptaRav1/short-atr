@@ -1,3 +1,5 @@
+# pip install binance-futures-connector
+
 from binance.um_futures import UMFutures
 from typing import List, Dict
 

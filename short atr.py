@@ -17,14 +17,14 @@ class ATRScanner:
         self.client = UMFutures(key=api_key, secret=api_secret)
         
     def get_active_symbols(self) -> List[str]:
-        """Get all active USDT perpetual futures symbols"""
+        """Get all active USDC perpetual futures symbols"""
         try:
             exchange_info = self.client.exchange_info()
             symbols = []
             
             for symbol_info in exchange_info['symbols']:
-                # Filter for USDT perpetual futures that are trading
-                if (symbol_info['symbol'].endswith('USDT') and 
+                # Filter for USDC perpetual futures that are trading
+                if (symbol_info['symbol'].endswith('USDC') and 
                     symbol_info['contractType'] == 'PERPETUAL' and
                     symbol_info['status'] == 'TRADING'):
                     symbols.append(symbol_info['symbol'])
@@ -39,7 +39,7 @@ class ATRScanner:
         Get kline/candlestick data for a symbol
         
         Args:
-            symbol: Trading symbol (e.g., 'BTCUSDT')
+            symbol: Trading symbol (e.g., 'BTCUSDC')
             interval: Kline interval (default: '1h')
             limit: Number of data points to retrieve (default: 100)
         """
@@ -119,9 +119,9 @@ class ATRScanner:
             atr_multiplier: ATR multiplier (default: 1.5)
             interval: Kline interval for analysis (default: '1h')
         """
-        print("Getting active symbols...")
+        print("Getting active USDC symbols...")
         symbols = self.get_active_symbols()
-        print(f"Found {len(symbols)} active symbols")
+        print(f"Found {len(symbols)} active USDC symbols")
         
         results = []
         
@@ -170,7 +170,7 @@ class ATRScanner:
             return
             
         print(f"\n{'='*80}")
-        print(f"Found {len(results)} symbols with ATR% >= 0.1%")
+        print(f"Found {len(results)} USDC symbols with ATR% >= 0.1%")
         print(f"{'='*80}")
         print(f"{'Symbol':<15} {'Price':<12} {'ATR Value':<12} {'ATR %':<10} {'Period':<8} {'Multiplier'}")
         print(f"{'-'*80}")
@@ -186,40 +186,40 @@ class ATRScanner:
                   f"{result['atr_period']:<8} "
                   f"{result['atr_multiplier']}")
 
-    def save_results_to_txt(self, results: List[Dict], filename: str = None):
-        """Save results to text file in Binance format"""
-        if not results:
-            print("No results to save.")
-            return
+    # def save_results_to_txt(self, results: List[Dict], filename: str = None):
+    #     """Save results to text file in Binance format"""
+    #     if not results:
+    #         print("No results to save.")
+    #         return
             
-        if filename is None:
-            filename = f"atr_scan_results_{int(time.time())}.txt"
+    #     if filename is None:
+    #         filename = f"atr_scan_results_{int(time.time())}.txt"
         
-        # Sort by ATR percentage descending
-        results.sort(key=lambda x: x['atr_percentage'], reverse=True)
+    #     # Sort by ATR percentage descending
+    #     results.sort(key=lambda x: x['atr_percentage'], reverse=True)
         
-        # Create list of symbols in BINANCE:SYMBOL.P format
-        symbol_list = []
-        for result in results:
-            symbol = result['symbol']
-            binance_format = f"BINANCE:{symbol}.P"
-            symbol_list.append(binance_format)
+    #     # Create list of symbols in BINANCE:SYMBOL.P format
+    #     symbol_list = []
+    #     for result in results:
+    #         symbol = result['symbol']
+    #         binance_format = f"BINANCE:{symbol}.P"
+    #         symbol_list.append(binance_format)
         
-        # Join all symbols with commas (no spaces after commas to match your format)
-        symbols_string = ','.join(symbol_list)
+    #     # Join all symbols with commas (no spaces after commas to match your format)
+    #     symbols_string = ','.join(symbol_list)
         
-        # Write to file
-        try:
-            with open(filename, 'w') as f:
-                f.write(symbols_string)
-            print(f"\nResults saved to {filename}")
-            print(f"Total symbols saved: {len(symbol_list)}")
-        except Exception as e:
-            print(f"Error saving to file: {e}")
+    #     # Write to file
+    #     try:
+    #         with open(filename, 'w') as f:
+    #             f.write(symbols_string)
+    #         print(f"\nResults saved to {filename}")
+    #         print(f"Total symbols saved: {len(symbol_list)}")
+    #     except Exception as e:
+    #         print(f"Error saving to file: {e}")
 
 def main():
     """Main function to run the ATR scanner"""
-    print("Binance UM Futures ATR Scanner")
+    print("Binance UM Futures ATR Scanner (USDC)")
     print("="*50)
     
     # Initialize scanner (no API credentials needed for market data)
@@ -236,9 +236,9 @@ def main():
     # Display results
     scanner.display_results(results)
     
-    # Save results to TXT file if any found
-    if results:
-        scanner.save_results_to_txt(results)
+    # # Save results to TXT file if any found
+    # if results:
+    #     scanner.save_results_to_txt(results)
 
 if __name__ == "__main__":
     main()
